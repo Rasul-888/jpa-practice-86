@@ -8,24 +8,49 @@ import model.CategorySpecification;
 import model.ProductSpecification;
 
 import javax.swing.text.html.parser.Entity;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class main {
     public static void main(String[] args) {
         EntityManagerFactory factory = Persistence.createEntityManagerFactory("default");
-        EntityManager entityManager = factory.createEntityManager();
+        EntityManager entityManger = factory.createEntityManager();
         Scanner scanner = new Scanner(System.in);
 
         try {
+            entityManger.getTransaction().begin();
 
-            List<Category> categories = entityManager.createQuery("FROM Category", Category.class).getResultList();
+            System.out.print("Введите название категорий: ");
+            String categoryName = scanner.nextLine();
 
-            if (categories.isEmpty()) {
-                System.out.println("В базе пока нет категорий.");
-                return;
+            System.out.print("Введите характеристики (через запятую и пробел): ");
+            String specsInput = scanner.nextLine();
+
+            Category category = new Category();
+            category.setName(categoryName);
+
+            category.setCategorySpecifications(new ArrayList<>());
+
+            entityManger.persist(category);
+
+            String[] specsArray = specsInput.split(", ");
+            for (String specName : specsArray) {
+                if (!specName.trim().isEmpty()) {
+                    CategorySpecification catSpec = new CategorySpecification();
+                    catSpec.setName(specName.trim());
+                    catSpec.setCategory(category);
+                    entityManger.persist(catSpec);
+                    category.getCategorySpecifications().add(catSpec);
+                }
             }
 
+            entityManger.getTransaction().commit();
+            System.out.println("Категория создана\n");
+
+
+            List<Category> categories = entityManger.createQuery("FROM Category",
+                    Category.class).getResultList();
 
             for (Category c : categories) {
                 System.out.println(c.getId() + ". " + c.getName());
@@ -35,13 +60,11 @@ public class main {
             Long categoryId = scanner.nextLong();
             scanner.nextLine();
 
-
-            Category selectedCategory = entityManager.find(Category.class, categoryId);
+            Category selectedCategory = entityManger.find(Category.class, categoryId);
             if (selectedCategory == null) {
-                System.out.println("Ошибка: Категория с ID " + categoryId + " не найдена.");
+                System.out.println("Ошибка: Категория не найдена.");
                 return;
             }
-
 
             System.out.print("Введите название товара: ");
             String productName = scanner.nextLine();
@@ -50,42 +73,37 @@ public class main {
             double price = scanner.nextDouble();
             scanner.nextLine();
 
-            entityManager.getTransaction().begin();
-
+            entityManger.getTransaction().begin();
 
             Product product = new Product();
             product.setName(productName);
             product.setPrice(price);
             product.setCategory(selectedCategory);
-            entityManager.persist(product);
+            entityManger.persist(product);
 
-
-            List<CategorySpecification> catSpecs = selectedCategory.getCategorySpecifications();
-
-            for (CategorySpecification catSpec : catSpecs) {
+            for (CategorySpecification catSpec : selectedCategory.getCategorySpecifications()) {
                 System.out.print(catSpec.getName() + ": ");
                 String valueInput = scanner.nextLine();
-
 
                 ProductSpecification prodSpec = new ProductSpecification();
                 prodSpec.setProduct(product);
                 prodSpec.setCategorySpecification(catSpec);
                 prodSpec.setName(valueInput);
 
-                entityManager.persist(prodSpec);
+                entityManger.persist(prodSpec);
             }
 
-            entityManager.getTransaction().commit();
+            entityManger.getTransaction().commit();
 
         } catch (Exception e) {
-            if (entityManager.getTransaction().isActive()) {
-                entityManager.getTransaction().rollback();
+            if (entityManger.getTransaction().isActive()) {
+                entityManger.getTransaction().rollback();
             }
-            System.err.println("Произошла ошибка при работе с базой данных:");
+            System.err.println("Ошибка базы данных:");
             e.printStackTrace();
         } finally {
             scanner.close();
-            entityManager.close();
+            entityManger.close();
             factory.close();
         }
     }
