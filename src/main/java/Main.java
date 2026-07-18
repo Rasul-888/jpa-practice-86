@@ -1,38 +1,46 @@
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import model.*;
 import java.util.Scanner;
-import model.ProductHandler;
-import model.CategoryHandler;
+import java.time.LocalDateTime;
 
 public class Main {
     public static void main(String[] args) {
         EntityManagerFactory factory = Persistence.createEntityManagerFactory("default");
-        EntityManager entityManger = factory.createEntityManager();
+        EntityManager entityManager = factory.createEntityManager();
         Scanner scanner = new Scanner(System.in);
 
         try {
-            entityManger.getTransaction().begin();
-            CategoryHandler.handleCategoryCreation(entityManger, scanner);
+            entityManager.getTransaction().begin();
+            User user = new User();
+            user.setLogin("admin1234");
+            user.setPassword("@dmiN1234");
+            user.setRole(UserRole.ADMIN);
+            user.setCreatedAt(LocalDateTime.now());
+            entityManager.persist(user);
+            entityManager.getTransaction().commit();
+            System.out.println("Тестовый пользователь создан (ID: " + user.getId() + ")\n");
 
-            entityManger.getTransaction().commit();
-            System.out.println("Категория создана\n");
+            CategoryHandler.handleCategoryCreation(entityManager, scanner);
+            System.out.println("Категория успешно создана!\n");
 
-            ProductHandler.handleProductCreation(entityManger, scanner);
+            ProductHandler.handleProductCreation(entityManager, scanner);
+
+            OrderHandler.handleOrderCreation(entityManager, scanner);
+
+            ReviewHandler.handleReviewCreation(entityManager, scanner);
 
         } catch (Exception e) {
-            if (entityManger.getTransaction().isActive()) {
-                entityManger.getTransaction().rollback();
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
             }
-            System.err.println("Ошибка базы данных:");
+            System.err.println("Произошла ошибка при работе с БД:");
             e.printStackTrace();
         } finally {
             scanner.close();
-            entityManger.close();
+            entityManager.close();
             factory.close();
         }
     }
 }
-
-
-

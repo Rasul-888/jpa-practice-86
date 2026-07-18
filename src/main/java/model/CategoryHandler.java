@@ -1,7 +1,6 @@
 package model;
 
 import jakarta.persistence.EntityManager;
-
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -12,6 +11,8 @@ public class CategoryHandler {
 
         System.out.print("Введите характеристики (через запятую и пробел): ");
         String specsInput = scanner.nextLine();
+
+        entityManger.getTransaction().begin();
 
         Category category = new Category();
         category.setName(categoryName);
@@ -29,5 +30,6 @@ public class CategoryHandler {
                 category.getCategorySpecifications().add(catSpec);
             }
         }
+        entityManger.getTransaction().commit();
     }
 }
